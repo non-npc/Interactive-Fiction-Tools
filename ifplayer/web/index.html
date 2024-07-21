@@ -1,1 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Fiction</title>
+    <script type="text/javascript" src="/eel.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        #story-container, #intro-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #choices {
+            margin-top: 20px;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        img, video {
+            max-width: 100%;
+            height: auto;
+            margin-top: 20px;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        #navbar {
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        #navbar h1 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+        #back-to-title {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            display: none;
+            width: 120px;
+            margin-top: 0;
+        }
+        #back-to-title:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar">
+        <h1 id="navbar-title"></h1>
+        <button id="back-to-title" onclick="backToTitle()">Back to Title</button>
+    </div>
+    <div id="intro-container">
+        <h2 id="author"></h2>
+        <div id="intro-image"></div>
+        <div id="intro-choices"></div>
+    </div>
+    <div id="story-container" style="display: none;">
+        <p id="story-text"></p>
+        <div id="media-container"></div>
+        <div id="choices"></div>
+    </div>
 
+    <script>
+        let storyTitle = "";
+        let backgroundAudio = null;
+        let currentVideo = null;
+
+        async function loadIntro() {
+            stopMedia();
+            const intro = await eel.get_intro()();
+            if (intro) {
+                storyTitle = intro.title;
+                document.getElementById('navbar-title').textContent = storyTitle;
+                document.getElementById('author').textContent = `by ${intro.author}`;
+                
+                if (intro.image) {
+                    const img = document.createElement('img');
+                    img.src = intro.image;
+                    document.getElementById('intro-image').appendChild(img);
+                }
+
+                if (intro.audio) {
+                    backgroundAudio = new Audio(intro.audio.src);
+                    backgroundAudio.loop = true;
+                    if (intro.audio.autoplay) {
+                        document.body.addEventListener('click', function startAudio() {
+                            backgroundAudio.play();
+                            document.body.removeEventListener('click', startAudio);
+                        }, { once: true });
+                    }
+                }
+
+                const introChoices = document.getElementById('intro-choices');
+                intro.choices.forEach(choice => {
+                    const button = document.createElement('button');
+                    button.textContent = choice.text;
+                    button.onclick = () => handleIntroChoice(choice.action);
+                    introChoices.appendChild(button);
+                });
+            } else {
+                startStory();
+            }
+        }
+
+        function handleIntroChoice(action) {
+            if (action === 'start') {
+                startStory();
+            } else if (action === 'exit') {
+                stopMedia();
+                eel.exit_app();
+                window.close();
+            }
+        }
+
+        async function startStory() {
+            stopMedia();
+            document.getElementById('intro-container').style.display = 'none';
+            document.getElementById('story-container').style.display = 'block';
+            document.getElementById('back-to-title').style.display = 'block';
+            const content = await eel.start_story()();
+            updateStory(content);
+        }
+
+        async function makeChoice(nextId) {
+            stopMedia();
+            const content = await eel.make_choice(nextId)();
+            updateStory(content);
+        }
+
+        function updateStory(content) {
+            document.getElementById('story-text').textContent = content.text;
+            
+            const mediaContainer = document.getElementById('media-container');
+            mediaContainer.innerHTML = '';
+
+            if (content.image) {
+                const img = document.createElement('img');
+                img.src = content.image;
+                mediaContainer.appendChild(img);
+            }
+
+            if (content.audio) {
+                const audio = document.createElement('audio');
+                audio.src = content.audio;
+                audio.controls = true;
+                mediaContainer.appendChild(audio);
+            }
+
+            if (content.video) {
+                const video = document.createElement('video');
+                video.src = content.video.src;
+                video.controls = true;
+                if (content.video.autoplay) {
+                    video.autoplay = true;
+                }
+                mediaContainer.appendChild(video);
+                currentVideo = video;
+            }
+
+            const choicesContainer = document.getElementById('choices');
+            choicesContainer.innerHTML = '';
+
+            content.choices.forEach(choice => {
+                const button = document.createElement('button');
+                button.textContent = choice.text;
+                button.onclick = () => makeChoice(choice.next);
+                choicesContainer.appendChild(button);
+            });
+        }
+
+        function backToTitle() {
+            stopMedia();
+            document.getElementById('story-container').style.display = 'none';
+            document.getElementById('intro-container').style.display = 'block';
+            document.getElementById('back-to-title').style.display = 'none';
+            document.getElementById('intro-image').innerHTML = '';
+            document.getElementById('intro-choices').innerHTML = '';
+            loadIntro();
+        }
+
+        function stopMedia() {
+            if (backgroundAudio) {
+                backgroundAudio.pause();
+                backgroundAudio.currentTime = 0;
+            }
+            if (currentVideo) {
+                currentVideo.pause();
+                currentVideo.currentTime = 0;
+                currentVideo = null;
+            }
+        }
+
+        window.onload = loadIntro;
+    </script>
+</body>
+</html>
