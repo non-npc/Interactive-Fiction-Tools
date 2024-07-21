@@ -27,11 +27,11 @@ The IF Player is a Python-based application that allows users to experience inte
    ```
    python ifplayer.py
    ```
-4. The application will launch in a new window. Use the file selection dialog to choose an .ifg file to play.
+4. The application will launch in a new window and load the story.ifg file
 
 ### Game Assets
 
-All game assets (images, audio, video) should be placed in the `web` folder. The .ifg file references these assets relative to this folder.
+All game assets (images, audio, video) should be placed in the `web` folder. The .ifg file references these assets relative to this folder ('web/assets').
 
 ### Distributing a Game
 
@@ -41,8 +41,9 @@ To distribute a game created with this tool:
 2. Include the following in your distribution package:
    - `ifplayer.py`
    - `web` folder (containing all game assets)
-   - Your `.ifg` file (your game file)
-3. Ensure the end-user has Python and the required dependencies installed.
+   - Your `story.ifg` file (your game file)
+3. The ifplayer by default will load 'story.ifg', you can change this in the ifplayer.py code if you wish to customize the story filename.
+4. Ensure the end-user has Python and the required dependencies installed or compile the script to executable.
 
 ## Interactive Fiction Editor (ifeditor.py)
 
