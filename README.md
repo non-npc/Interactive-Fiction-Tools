@@ -9,6 +9,8 @@ This project provides tools for creating, editing, and playing interactive ficti
 
 The IF Player is a Python-based application that allows users to experience interactive fiction stories created with our editor or compatible with our IFG format.
 
+A sample game is provided (story.ifg) and its sample assets are in the 'web/assets' folder.
+
 ### Features
 
 - Reads story files in IFG format (XML-based)
